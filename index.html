@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ieraouz Birthday Party</title>
+    <!-- Add Supabase JS library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            background-color: #ff4d4d;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white;
+        }
+        .invitation-container {
+            padding: 20px;
+            width: 90%;
+            max-width: 600px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+        p {
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        input[type="text"], input[type="email"], input[type="number"], select {
+            padding: 10px;
+            width: 80%;
+            max-width: 300px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 5px;
+        }
+        input[type="radio"] {
+            margin: 0 10px 0 20px;
+        }
+        .radio-group {
+            margin-bottom: 10px;
+        }
+        input[type="submit"] {
+            background-color: #ff3300;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        input[type="submit"]:hover {
+            background-color: #cc2900;
+        }
+        .decorative-element {
+            font-size: 3em;
+        }
+        #attendeeCount {
+            margin-top: 20px;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        .loading {
+            display: none;
+            margin: 10px 0;
+        }
+        .error-message {
+            color: #ffcccc;
+            margin: 10px 0;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="invitation-container">
+        <div class="decorative-element">??</div>
+        <h1>You're Invited to Ieraouz Birthday Party!</h1>
+        <p>Twinkle twinkle, look who's ONE! 365 days of adventures done, 12 moons of precious smiles so bright, Ieraouz invites you to a day of delight! Join our little prince for a magical afternoon of cake, games, and memories that will make our hearts swoon!!</p>
+        
+        <form id="rsvpForm" onsubmit="handleSubmit(event)">
+            <input type="text" name="name" placeholder="Your Name" required>
+            <input type="number" name="guests" id="guestNumber" min="1" max="5" placeholder="Number of Guests" required>
+            <div class="radio-group">
+                <label>Attending:</label>
+                <input type="radio" name="attending" value="true" required> Yes
+                <input type="radio" name="attending" value="false" required> No
+            </div>
+            <div class="loading" id="loadingMessage">Submitting...</div>
+            <div class="error-message" id="errorMessage"></div>
+            <input type="submit" value="Submit">
+        </form>
+
+        <div id="attendeeCount">Total Attendees: Loading...</div>
+        <div class="decorative-element">????</div>
+    </div>
+
+    <script>
+        // Correct Supabase initialization
+        const supabaseClient = supabase.createClient(
+            'https://jbbrywvcddhzgkpzrvka.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpiYnJ5d3ZjZGRoemdrcHpydmthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIyOTU1MjAsImV4cCI6MjA1Nzg3MTUyMH0.q7Kxxf1I0Op11S47mFjh0xnBPhAkz33zgmNGQNhO3ws'
+        );
+
+        // Function to fetch total attendees
+        async function fetchTotalAttendees() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('rsvp_responses')
+                    .select('guests_count')
+                    .eq('attending', true);
+
+                if (error) throw error;
+
+                const total = data.reduce((sum, row) => sum + row.guests_count, 0);
+                document.getElementById('attendeeCount').textContent = `Total Attendees: ${total}`;
+            } catch (error) {
+                console.error('Error fetching attendees:', error);
+                document.getElementById('attendeeCount').textContent = 'Total Attendees: Error loading';
+            }
+        }
+
+        // Handle form submission
+        async function handleSubmit(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const loadingMessage = document.getElementById('loadingMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            loadingMessage.style.display = 'block';
+            errorMessage.style.display = 'none';
+
+            try {
+                const formData = {
+                    name: form.name.value,
+                    guests_count: parseInt(form.guests.value),
+                    attending: form.attending.value === 'true'
+                };
+
+                const { data, error } = await supabaseClient
+                    .from('rsvp_responses')
+                    .insert([formData]);
+
+                if (error) throw error;
+
+                form.reset();
+                alert('Thank you for your RSVP!');
+                fetchTotalAttendees();
+
+            } catch (error) {
+                console.error('Error submitting RSVP:', error);
+                errorMessage.textContent = 'There was an error submitting your RSVP. Please try again.';
+                errorMessage.style.display = 'block';
+            } finally {
+                loadingMessage.style.display = 'none';
+            }
+        }
+
+        // Load total attendees on page load
+        window.onload = fetchTotalAttendees;
+    </script>
+</body>
+</html>
